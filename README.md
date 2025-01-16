@@ -40,7 +40,7 @@
 - Docs: http://localhost:8123/docs
 - Langgraph Studio: https://smith.langchain.com/studio/?baseUrl=http://127.0.0.1:8123
 
-__PS__: you may change the API url by changing the port inside the `.yaml` file
+__PS__: you may change the API url by changing the port inside the `.yml` file
 
 ## FAQ
 
