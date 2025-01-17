@@ -19,7 +19,7 @@ from langgraph.store.base import BaseStore
 from langgraph.store.memory import InMemoryStore
 
 import configuration
-from api_caller import fetch_task_counts
+from api_caller import fetch_task_counts, fetch_shift_logs
 
 ## Utilities 
 
@@ -109,7 +109,7 @@ class Profile(BaseModel):
 # Update memory tool
 class ChooseTask(TypedDict):
     """ Decision on what tool to use """
-    update_type: Literal['user', 'fetch_task_count']
+    update_type: Literal['user', 'fetch_task_count', 'create_shift_summary']
 
 # Initialize the model
 model = ChatOpenAI(model="gpt-4o", temperature=0)
@@ -141,6 +141,7 @@ Here are your instructions for reasoning about the user's messages:
 2. Decide whether any of the your long-term memory should be updated:
 - If personal information was provided about the user, update the user's profile by calling ChooseTask tool with type `user`
 - If the user is asking for the amount of tasks they have, provide information by calling ChooseTask tool with type `fetch_task_count`
+- If the user wants a summary of their tasks, provide it by calling ChooseTask tool with type `create_shift_summary`
 
 3. Tell the user that you have updated your memory, if appropriate:
 - Do not tell the user you have updated the user's profile
@@ -238,9 +239,25 @@ def fetch_task_count(state: MessagesState, config: RunnableConfig, store: BaseSt
     tool_calls = state["messages"][-1].tool_calls
     return {"messages": [{"role": "tool", "content": response, "tool_call_id":tool_calls[0]['id']}]}
 
+def create_shift_summary(state:MessagesState, config: RunnableConfig, store: BaseStore):
+
+    """Returns a short summary of the tasks worked on the current shift"""
+
+    auth_token = config["configurable"]["auth_token"]
+    employment_id = config["configurable"]["employment_id"]
+    shift_start = config["configurable"]["shift_start"]
+
+    shifts = fetch_shift_logs(auth_token, employment_id, shift_start)
+
+    response = """The server returned:
+    {shifts}
+    Relay this information to the user""".format(shifts=shifts)
+
+    tool_calls = state["messages"][-1].tool_calls
+    return {"messages": [{"role": "tool", "content": response, "tool_call_id":tool_calls[0]['id']}]}
 
 # Conditional edge
-def route_message(state: MessagesState, config: RunnableConfig, store: BaseStore) -> Literal[END, "update_profile", "fetch_task_count"]:
+def route_message(state: MessagesState, config: RunnableConfig, store: BaseStore) -> Literal[END, "update_profile", "fetch_task_count", "create_shift_summary"]:
 
     """Reflect on the memories and chat history to decide whether to update the memory collection."""
     message = state['messages'][-1]
@@ -252,6 +269,8 @@ def route_message(state: MessagesState, config: RunnableConfig, store: BaseStore
             return "update_profile"
         elif tool_call['args']['update_type'] == "fetch_task_count":
             return "fetch_task_count"
+        elif tool_call['args']['update_type'] == "create_shift_summary":
+            return "create_shift_summary"
         else:
             raise ValueError
 
@@ -262,12 +281,14 @@ builder = StateGraph(MessagesState, config_schema=configuration.Configuration)
 builder.add_node(task_mAIstro)
 builder.add_node(update_profile)
 builder.add_node(fetch_task_count)
+builder.add_node(create_shift_summary)
 
 # Define the flow 
 builder.add_edge(START, "task_mAIstro")
 builder.add_conditional_edges("task_mAIstro", route_message)
 builder.add_edge("update_profile", "task_mAIstro")
 builder.add_edge("fetch_task_count", "task_mAIstro")
+builder.add_edge("create_shift_summary", "task_mAIstro")
 
 # Compile the graph
 graph = builder.compile()
