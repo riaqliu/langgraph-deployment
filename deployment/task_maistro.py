@@ -141,7 +141,7 @@ Here are your instructions for reasoning about the user's messages:
 2. Decide whether any of the your long-term memory should be updated:
 - If personal information was provided about the user, update the user's profile by calling ChooseTask tool with type `user`
 - If the user is asking for the amount of tasks they have, provide information by calling ChooseTask tool with type `fetch_task_count`
-- If the user wants a summary of their tasks, provide it by calling ChooseTask tool with type `create_shift_summary`
+- If the user wants a summary of their tasks for the day, provide it by calling ChooseTask tool with type `create_shift_summary`
 
 3. Tell the user that you have updated your memory, if appropriate:
 - Do not tell the user you have updated the user's profile
@@ -249,15 +249,16 @@ def create_shift_summary(state:MessagesState, config: RunnableConfig, store: Bas
 
     shifts = fetch_shift_logs(auth_token, employment_id, shift_start)
 
-    response = """The server returned:
+    response = """Below are the titles of the tasks that the user has done:
     {shifts}
-    Relay this information to the user""".format(shifts=shifts)
+    Return the exact tasks that the user has done with: \"Today, you did \".
+    Provide a short precise summary for the tasks done afterward.""".format(shifts=shifts)
 
     tool_calls = state["messages"][-1].tool_calls
     return {"messages": [{"role": "tool", "content": response, "tool_call_id":tool_calls[0]['id']}]}
 
 # Conditional edge
-def route_message(state: MessagesState, config: RunnableConfig, store: BaseStore) -> Literal[END, "update_profile", "fetch_task_count", "create_shift_summary"]:
+def route_message(state: MessagesState, config: RunnableConfig, store: BaseStore) -> Literal[ "update_profile", "fetch_task_count", "create_shift_summary", END]:
 
     """Reflect on the memories and chat history to decide whether to update the memory collection."""
     message = state['messages'][-1]
