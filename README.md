@@ -28,10 +28,16 @@
     langgraph build -t my-image
     ```
 
-6. If everything is working, lauch the deployment.
+6. If everything is working, lauch the deployment. (If you already built the image, just do this command immediately)
 
     ```cmd
     docker-compose up
+    ```
+
+7. To stop docker:
+
+    ```cmd
+    docker-compose down
     ```
 
 ## Viewing your Deployed Graph
@@ -51,3 +57,5 @@ __Resources for deployments:__
 - [Launching the deployment](https://colab.research.google.com/github/langchain-ai/langchain-academy/blob/main/module-6/creating.ipynb)
 
 - [Connecting to a deployment](https://colab.research.google.com/github/langchain-ai/langchain-academy/blob/main/module-6/connecting.ipynb)
+
+last updated: February 9, 2025

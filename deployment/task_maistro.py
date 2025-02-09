@@ -251,8 +251,7 @@ def create_shift_summary(state:MessagesState, config: RunnableConfig, store: Bas
 
     response = """Below are the titles of the tasks that the user has done:
     {shifts}
-    Return the exact tasks that the user has done with: \"Today, you did \".
-    Provide a short precise summary for the tasks done afterward.""".format(shifts=shifts)
+    Provide a short precise summary for the tasks done afterward. If above is empty, inform the user that they did not do anything today.""".format(shifts=shifts)
 
     tool_calls = state["messages"][-1].tool_calls
     return {"messages": [{"role": "tool", "content": response, "tool_call_id":tool_calls[0]['id']}]}
